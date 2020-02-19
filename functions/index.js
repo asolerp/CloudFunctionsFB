@@ -40,23 +40,24 @@ exports.updateParticipation = functions.firestore
 
 
     //send the push notification 
-exports.sendPushNotification = functions.firestore
-    .document('matches/{matchID}').onUpdate((change, context) => {
+exports.sendPushNotification = functions.https.onRequest( async (req, res) => {
 
-    const newValue = change.after.data();
-    let players = []
-    let messages = []
-  //return the main promise 
+  const { from, matchUID, senderUID, notification } = req.body
 
-  const config = {
-    headers: { 
-      'Content-Type': 'application/json', 
-      'accept-encoding': 'gzip, deflate',   
-      'host': 'exp.host'  
+  const doc = await db.collection('matches').doc(matchUID).get()
+  const messages = []
+
+  doc.data().players.forEach(player => {
+    if (player.uid !== senderUID ) {
+      messages.push({
+        "to": player.expoToken,
+        "title": notification.title,
+        "body": `${from} ${notification.message}`
+      })
     }
-  }
+  })
 
-  players.push(axios({
+  return axios({
       method: 'post',
       url: 'https://exp.host/--/api/v2/push/send',
       headers: { 
@@ -64,18 +65,10 @@ exports.sendPushNotification = functions.firestore
         'accept-encoding': 'gzip, deflate',   
         'host': 'exp.host'  
       }, 
-      data: {
-        "to": "ExponentPushToken[rzZvAvIkzHFXoOnqWwLChF]",
-        "title": "Hola!!!",
-        "tag": "main-tag",
-        "body": "Te veo desde Cloud!!!!!!!"
-      }      
+      data: messages      
     })
     .then(response => console.log(response.data))
     .catch(err => console.log(err))
-  )
-
-  return Promise.all(players)
   
   // axios.post('https://api.ipify.org?format=json')
 
