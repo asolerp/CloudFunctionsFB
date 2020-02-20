@@ -1,9 +1,25 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const axios = require('axios')
+const NOTIFICATIONS = require('./constants/Notifications')
 
 admin.initializeApp();
 const db = admin.firestore();
+
+const sendNotif = (messages) => {
+  return axios({
+    method: 'post',
+    url: 'https://exp.host/--/api/v2/push/send',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'accept-encoding': 'gzip, deflate',   
+      'host': 'exp.host'  
+    }, 
+    data: messages      
+  })
+  .then(response => console.log(response.data))
+  .catch(err => console.log(err))
+}
 
 
 exports.addMatchToUsers = functions.firestore
@@ -39,7 +55,27 @@ exports.updateParticipation = functions.firestore
     });
 
 
-    //send the push notification 
+// NOTIFICATIONS 
+
+exports.newMatch = functions.firestore
+  .document('matches/{matchID}')
+  .onCreate((snap, context) => {
+
+    const newValue = snap.data();
+    const { NEW_MATCH } = NOTIFICATIONS
+    let messages = []
+    newValue.players.forEach(player => {
+      messages.push({
+        "to": player.expoToken,
+        "title": NEW_MATCH.title,
+        "body": NEW_MATCH.message
+      })
+    })
+
+    return sendNotif(messages)
+
+})
+
 exports.sendPushNotification = functions.https.onRequest( async (req, res) => {
 
   const { from, matchUID, senderUID, notification } = req.body
@@ -57,70 +93,6 @@ exports.sendPushNotification = functions.https.onRequest( async (req, res) => {
     }
   })
 
-  return axios({
-      method: 'post',
-      url: 'https://exp.host/--/api/v2/push/send',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'accept-encoding': 'gzip, deflate',   
-        'host': 'exp.host'  
-      }, 
-      data: messages      
-    })
-    .then(response => console.log(response.data))
-    .catch(err => console.log(err))
-  
-  // axios.post('https://api.ipify.org?format=json')
-
-  // players.push(
-  //   fetch('https://exp.host/--/api/v2/push/send', {       
-  //        method: 'POST', 
-  //        headers: {
-  //              Accept: 'application/json',  
-  //             'Content-Type': 'application/json', 
-  //             'accept-encoding': 'gzip, deflate',   
-  //             'host': 'exp.host'      
-  //         }, 
-  //       body: JSON.stringify({                 
-  //             to: 'ExponentPushToken[rzZvAvIkzHFXoOnqWwLChF]',                        
-  //             title: 'New Notification',                  
-  //             body: 'The notification worked!',             
-  //             priority: "high",            
-  //             sound:"default",              
-  //             channelId:"default",   
-  //           }),        
-  //         })
-  // )
-
-  // Object.keys(newValue.participation).forEach(async uid => {
-  //   players.push(db.collection('users')
-  //   .doc(uid)
-  //   .get()
-  //   .then(doc => {
-  //     let expoToken = doc.data().expoToken;
-  //     if (expoToken) {
-  //       messages.push(fetch('https://exp.host/--/api/v2/push/send', {       
-  //        method: 'POST', 
-  //        headers: {
-  //              Accept: 'application/json',  
-  //             'Content-Type': 'application/json', 
-  //             'accept-encoding': 'gzip, deflate',   
-  //             'host': 'exp.host'      
-  //         }, 
-  //       body: JSON.stringify({                 
-  //             to: expoToken,                        
-  //             title: 'New Notification',                  
-  //             body: 'The notification worked!',             
-  //             priority: "high",            
-  //             sound:"default",              
-  //             channelId:"default",   
-  //           }),        
-  //         })
-  //       );
-  //     }
-  //     return Promise.all(messages)
-  //   })
-  //   )
-  // })
+  return sendNotif(messages)
 
 });
