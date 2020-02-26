@@ -115,11 +115,9 @@ exports.updateProfileUsername = functions.firestore
                     if (querySnapshot.empty) {
                         return null;
                     } else {
-                        // let batch = db.batch();
-                        console.log("[[MATCHES]]")
+                        let batch = db.batch();
                         querySnapshot.forEach(doc => {
-                            console.log(doc.data())
-                            // batch.update(doc.ref, { username: `${newUsername}` });
+                            batch.update(doc.ref, { username: `${newUsername}` });
                         });
                         return
                         // return batch.commit();
