@@ -96,3 +96,35 @@ exports.sendPushNotification = functions.https.onRequest( async (req, res) => {
   return sendNotif(messages)
 
 });
+
+
+// UPDATE PROFILE 
+
+exports.updateProfileUsername = functions.firestore
+    .document('users/{userId}')
+    .onUpdate((change, context) => {
+        const { userId } = context.params;
+
+            let newUser = change.after.data();
+  
+            const matchesCollectionRef = db.collection('matches');
+            const matchQuery = matchesCollectionRef.where('playersUID', 'array-contains', `${userId}`);
+
+            return matchQuery.get()
+                .then(querySnapshot => {
+                    if (querySnapshot.empty) {
+                        return null;
+                    } else {
+                        // let batch = db.batch();
+                        console.log("[[MATCHES]]")
+                        querySnapshot.forEach(doc => {
+                            console.log(doc.data())
+                            // batch.update(doc.ref, { username: `${newUsername}` });
+                        });
+                        return
+                        // return batch.commit();
+
+                    }
+                });
+  
+    });
