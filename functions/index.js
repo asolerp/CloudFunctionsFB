@@ -155,7 +155,7 @@ exports.updateProfileUsername = functions.firestore
                               imgProfile: newUser.imgProfile,
                               name: newUser.name,
                               principalPosition: newUser.principalPosition,
-                              stats: oldUser.stats,
+                              stats: newUser.stats,
                               uid: userId
                             })
                           })
