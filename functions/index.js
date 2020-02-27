@@ -105,6 +105,7 @@ exports.updateProfileUsername = functions.firestore
     .onUpdate((change, context) => {
         const { userId } = context.params;
 
+            let oldUser = change.before.data();
             let newUser = change.after.data();
   
             const matchesCollectionRef = db.collection('matches');
@@ -117,10 +118,52 @@ exports.updateProfileUsername = functions.firestore
                     } else {
                         let batch = db.batch();
                         querySnapshot.forEach(doc => {
-                            batch.update(doc.ref, { username: `${newUsername}` });
-                        });
-                        return
-                        // return batch.commit();
+
+                          // Update admin profile
+                          if (doc.data().admins.find(p => p.uid === userId)) {
+
+                            batch.update(doc.ref, {
+                              admins: admin.firestore.FieldValue.arrayRemove({
+                                imgProfile: oldUser.imgProfile,
+                                uid: userId
+                              })
+                            })                                                
+                            batch.update(doc.ref, {
+                              admins: admin.firestore.FieldValue.arrayUnion({
+                                imgProfile: newUser.imgProfile,
+                                uid: userId
+                              })
+                            })
+                          }
+
+                          // Update player profile inside match
+                          batch.update(doc.ref, {
+                            players: admin.firestore.FieldValue.arrayRemove({
+                              assistance: false,
+                              expoToken: oldUser.expoToken,
+                              imgProfile: oldUser.imgProfile,
+                              name: oldUser.name,
+                              principalPosition: oldUser.principalPosition,
+                              stats: oldUser.stats,
+                              uid: userId
+                            })
+                          })                                                
+                          batch.update(doc.ref, {
+                            players: admin.firestore.FieldValue.arrayUnion({
+                              assistance: false,
+                              expoToken: newUser.expoToken,
+                              imgProfile: newUser.imgProfile,
+                              name: newUser.name,
+                              principalPosition: newUser.principalPosition,
+                              stats: oldUser.stats,
+                              uid: userId
+                            })
+                          })
+
+                          })                          
+                        
+          
+                        return batch.commit();
 
                     }
                 });
