@@ -136,29 +136,46 @@ exports.updateProfileUsername = functions.firestore
                             })
                           }
 
+                          const oldPlayerData = doc.data().players.find(p => p.uid === userId)
+
+                          // Update teams inside match
+
+                          // if (oldPlayerData.line) {
+                          //   batch.update(doc.ref, {
+                          //     [`${oldPlayerData.line}.${oldPlayerData.position}`]: admin.firestore.FieldValue.arrayRemove(oldPlayerData)
+                          //   }) 
+                          //   batch.update(doc.ref, {
+                          //     [`${oldPlayerData.line}.${oldPlayerData.position}`]: admin.firestore.FieldValue.arrayUnion({                              
+                          //       assistance: false,
+                          //       expoToken: newUser.expoToken || oldPlayerData.expoToken,
+                          //       dragged: oldPlayerData.dragged,
+                          //       imgProfile: newUser.imgProfile,
+                          //       name: newUser.name,
+                          //       line: oldPlayerData.line,
+                          //       position: oldPlayerData.position,
+                          //       principalPosition: newUser.principalPosition || oldPlayerData.principalPosition,
+                          //       stats: newUser.stats,
+                          //       uid: userId
+                          //     })
+                          //   }) 
+                          // }
+
                           // Update player profile inside match
                           batch.update(doc.ref, {
-                            players: admin.firestore.FieldValue.arrayRemove({
-                              assistance: false,
-                              expoToken: oldUser.expoToken,
-                              imgProfile: oldUser.imgProfile,
-                              name: oldUser.name,
-                              principalPosition: oldUser.principalPosition,
-                              stats: oldUser.stats,
-                              uid: userId
-                            })
+                            players: admin.firestore.FieldValue.arrayRemove(oldPlayerData)
                           })                                                
                           batch.update(doc.ref, {
-                            players: admin.firestore.FieldValue.arrayUnion({
+                            players: admin.firestore.FieldValue.arrayUnion({                              
                               assistance: false,
-                              expoToken: newUser.expoToken,
+                              expoToken: newUser.expoToken || oldPlayerData.expoToken,
+                              dragged: oldPlayerData.dragged,
                               imgProfile: newUser.imgProfile,
                               name: newUser.name,
-                              principalPosition: newUser.principalPosition,
+                              principalPosition: newUser.principalPosition || oldPlayerData.principalPosition,
                               stats: newUser.stats,
                               uid: userId
                             })
-                          })
+                          })              
 
                           })                          
                         
