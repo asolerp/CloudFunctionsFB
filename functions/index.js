@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const axios = require('axios')
 const NOTIFICATIONS = require('./constants/Notifications')
+const arr_diff = require('./utils/Arrays')
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -21,7 +22,6 @@ const sendNotif = (messages) => {
   .catch(err => console.log(err))
 }
 
-
 exports.addMatchToUsers = functions.firestore
     .document('matches/{matchID}')
     .onCreate((snap, context) => {
@@ -40,16 +40,53 @@ exports.addMatchToUsers = functions.firestore
 exports.updateParticipation = functions.firestore
     .document('matches/{matchID}')
     .onUpdate((change, context) => {
+
       const newValue = change.after.data();
+      const oldValue = change.before.data()
+      const promises = []
+
+      const playerChanged = arr_diff(oldValue.participation, newValue.participation)
+
+      if (playerChanged[0] !== undefined) {
+        console.log("Player has update the participation to false...")        
+        const player = oldValue.players.find(p => p.uid === playerChanged[0])
+        
+        if (oldValue.participation[playerChanged[0]]) {
+          console.log("Player is going to be removed from the team...")     
+          const newTeam = oldValue[player.team]
+          const newPlayers = oldValue.players
+          const indexPlayer = oldValue.players.findIndex(p => p.uid === playerChanged[0])
+
+          console.log("[[PLAYER]]", newPlayers[indexPlayer])
+
+          // newPlayers[indexPlayer].dragged = false
+          // delete newPlayers[indexPlayer].team
+          // delete newPlayers[indexPlayer].line
+          // delete newPlayers[indexPlayer].position
+
+          newTeam[player.line][player.position] = {
+            imgProfile: 'https://cdn4.iconfinder.com/data/icons/game-10/22/player-profile-512.png',
+            name: 'Pmanager'
+          }
+          promises.push(db.collection('matches').doc(context.params.matchID).update({
+            [player.team]: newTeam,
+            players: newPlayers
+          }))
+        }
+      }
+
       let assistance = 0
       Object.keys(newValue.participation).forEach(uid => {
         if (newValue.participation[uid]) {
           assistance += 1
         }
       })
-      return db.collection('matches').doc(context.params.matchID).update({
+
+      promises.push(db.collection('matches').doc(context.params.matchID).update({
         assistance: assistance
-      })
+      }))
+
+      return Promise.all(promises)
       .then(() => console.log(`Participación actualizada`))
       .catch(e => console.log(e))
     });
