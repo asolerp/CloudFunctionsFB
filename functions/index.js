@@ -52,24 +52,29 @@ exports.updateParticipation = functions.firestore
         const player = oldValue.players.find(p => p.uid === playerChanged[0])
         
         if (oldValue.participation[playerChanged[0]]) {
+          
           console.log("Player is going to be removed from the team...")     
-          const newTeam = oldValue[player.team]
           const newPlayers = oldValue.players
-          const indexPlayer = oldValue.players.findIndex(p => p.uid === playerChanged[0])
+          const indexPlayer = newPlayers.findIndex(p => p.uid === playerChanged[0])
+
+          const { line, position, team } = newPlayers[indexPlayer]
+          const newTeam = oldValue[team]
 
           console.log("[[PLAYER]]", newPlayers[indexPlayer])
 
-          // newPlayers[indexPlayer].dragged = false
+          newPlayers[indexPlayer].dragged = false
+
+          newTeam[line][position] = {
+            imgProfile: 'https://cdn4.iconfinder.com/data/icons/game-10/22/player-profile-512.png',
+            name: 'Pmanager'
+          }
+
           // delete newPlayers[indexPlayer].team
           // delete newPlayers[indexPlayer].line
           // delete newPlayers[indexPlayer].position
 
-          newTeam[player.line][player.position] = {
-            imgProfile: 'https://cdn4.iconfinder.com/data/icons/game-10/22/player-profile-512.png',
-            name: 'Pmanager'
-          }
           promises.push(db.collection('matches').doc(context.params.matchID).update({
-            [player.team]: newTeam,
+            [team]: newTeam,
             players: newPlayers
           }))
         }
